@@ -19,34 +19,33 @@ import {
   SelectItem,
   Select,
 } from "@/components/ui/select";
+import { useState, useEffect } from "react";
 
 const formSchema = z
   .object({
     emailAddress: z.string().email(),
-    password: z.string().min(3),
-    passwordConfirm: z.string(),
-    accountType: z.enum(["personal", "company"]),
-    companyName: z.string().optional(),
+    phoneNumber: z.string().min(10).max(10),
+    mattressType: z.enum(["king", "queen", "full"]),
   })
+  // .refine(
+  //   (data) => {
+  //     return data.password === data.passwordConfirm;
+  //   },
+  //   {
+  //     message: "Passwords do not match",
+  //     path: ["passwordConfirm"],
+  //   }
+  // )
   .refine(
     (data) => {
-      return data.password === data.passwordConfirm;
-    },
-    {
-      message: "Passwords do not match",
-      path: ["passwordConfirm"],
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.accountType === "company") {
-        return !!data.companyName;
+      if (data.mattressType === "mattressType") {
+        return !!data.mattressType;
       }
       return true;
     },
     {
-      message: "Company name is required",
-      path: ["companyName"],
+      message: "Mattress Type is required",
+      path: ["mattressType"],
     }
   );
 
@@ -55,18 +54,44 @@ export default function Home() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       emailAddress: "",
-      password: "",
-      passwordConfirm: "",
-      companyName: "",
+      mattressType: "",
+      phoneNumber: "",
     },
   });
 
-  const accountType = form.watch("accountType");
+  const mattressType = form.watch("mattressType");
+  const [isSent, setIsSent] = useState(false);
+
+  useEffect(() => {
+    if (isSent)
+      setTimeout(() => {
+        setIsSent(false);
+      }, 5000);
+  }, [isSent]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log({ values });
+    console.log("values", values);
+    fetch("https://rw8j7h.buildship.run/Mattress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(values),
+    })
+      .then((res) => {
+        if (res.ok) {
+          setIsSent(true);
+          form.reset(); // Reset the form fields
+        } else {
+          // Handle error
+          console.error("Error submitting form:", res.status);
+        }
+      })
+      .catch((error) => {
+        // Handle network error
+        console.error("Network error:", error);
+      });
   };
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <Form {...form}>
@@ -95,20 +120,21 @@ export default function Home() {
           />
           <FormField
             control={form.control}
-            name="accountType"
+            name="mattressType"
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>Account type</FormLabel>
+                  <FormLabel>mattress size</FormLabel>
                   <Select onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select an account type" />
+                        <SelectValue placeholder="Select Mattress Size" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="personal">Personal</SelectItem>
-                      <SelectItem value="company">Company</SelectItem>
+                      <SelectItem value="king">King</SelectItem>
+                      <SelectItem value="queen">Queen</SelectItem>
+                      <SelectItem value="full">Full</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -116,16 +142,16 @@ export default function Home() {
               );
             }}
           />
-          {accountType === "company" && (
+          {mattressType === "mattressType" && (
             <FormField
               control={form.control}
-              name="companyName"
+              name="phoneNumber"
               render={({ field }) => {
                 return (
                   <FormItem>
-                    <FormLabel>Company name</FormLabel>
+                    <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Company name" {...field} />
+                      <Input placeholder="Phone Number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -135,19 +161,24 @@ export default function Home() {
           )}
           <FormField
             control={form.control}
-            name="password"
+            name="phoneNumber"
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Password" type="password" {...field} />
+                    <Input
+                      placeholder="Phone Number"
+                      type="phoneNumber"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               );
             }}
           />
+          {/*
           <FormField
             control={form.control}
             name="passwordConfirm"
@@ -166,7 +197,19 @@ export default function Home() {
                 </FormItem>
               );
             }}
-          />
+          /> */}
+          {isSent ? (
+            <Button
+              disabled
+              className="opacity-50 bg-[#3e0923] hover:bg-[#47152d] transition-colors px-5 py-2 text-white font-bold w-fit ml-auto rounded text-xs"
+            >
+              PLEASE WAIT
+            </Button>
+          ) : (
+            <Button className="bg-[#3e0923] hover:bg-[#47152d] transition-colors px-5 py-2 text-white font-bold w-fit ml-auto rounded text-xs">
+              SEND
+            </Button>
+          )}
           <Button type="submit" className="w-full">
             Submit
           </Button>
